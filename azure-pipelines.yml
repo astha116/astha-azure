@@ -27,11 +27,6 @@ steps:
       npm test
     displayName: 'Run tests'
 
-  - script: |
-      cd src
-      npm run build
-    displayName: 'Build app'
-
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)'
