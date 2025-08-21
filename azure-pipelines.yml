@@ -22,9 +22,11 @@ steps:
 
   - script: npm test
     displayName: 'Run tests'
+    workingDirectory: 'src'
 
   - script: npm run build
     displayName: 'Build app'
+    workingDirectory: 'src'
 
   - task: PublishBuildArtifacts@1
     inputs:
