@@ -17,16 +17,20 @@ steps:
       versionSpec: '18.19.1'
     displayName: 'Install Node.js'
 
-  - script: npm install
+  - script: |
+      cd src
+      npm install
     displayName: 'Install dependencies'
 
-  - script: npm test
+  - script: |
+      cd src
+      npm test
     displayName: 'Run tests'
-    workingDirectory: 'src'
 
-  - script: npm run build
+  - script: |
+      cd src
+      npm run build
     displayName: 'Build app'
-    workingDirectory: 'src'
 
   - task: PublishBuildArtifacts@1
     inputs:
