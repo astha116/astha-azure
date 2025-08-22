@@ -70,43 +70,42 @@ stages:
         npm install
         npm run test
       displayName: 'Install dependencies and run tests'
-    - script: |
-        # Download and install SonarQube CLI Scanner
-        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-        unzip sonar-scanner-cli-4.8.0.2856-linux.zip
-        sudo mv sonar-scanner-4.8.0.2856-linux /opt/sonar-scanner
-        sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
-        sonar-scanner -v
-      displayName: 'Install SonarQube Scanner'
-    - script: |
-        cat > sonar-project.properties << EOF
-        sonar.projectKey=$(sonarQubeProjectKey)
-        sonar.projectName=$(sonarQubeProjectName)
-        sonar.projectVersion=$(Build.BuildNumber)
-        sonar.sources=src
-        sonar.exclusions=**/node_modules/**,**/*.test.js,**/coverage/**
-        sonar.javascript.lcov.reportPaths=src/coverage/lcov.info
-        sonar.testExecutionReportPaths=src/test-results.xml
-        sonar.coverage.exclusions=**/*test*/**,**/node_modules/**
-        sonar.cpd.exclusions=**/*test*/**,**/node_modules/**
-        EOF
-      displayName: 'Create SonarQube project properties'
-    # Run SonarQube Analysis
-    - script: |
-        sonar-scanner \
-          -Dsonar.host.url=$(sonarQubeUrl) \
-          -Dsonar.login=$(azure-sonarqube)
-      displayName: 'Run SonarQube Analysis'
+
+    # 2) Download & install SonarScanner CLI **for Windows**
+    - powershell: |
+        $ErrorActionPreference = 'Stop'
+        $ver  = '5.0.1.3006'
+        $zip  = "sonar-scanner-cli-$ver-windows.zip"
+        Write-Host "Downloading $zip ..."
+        Invoke-WebRequest -Uri "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/$zip" -OutFile $zip
+
+        Write-Host "Extracting ..."
+        Expand-Archive -Path $zip -DestinationPath .
+
+        # Add scanner\bin to PATH for this session
+        $scannerDir = (Get-ChildItem sonar-scanner-* -Directory)[0].FullName
+        $env:PATH   = "$scannerDir\bin;$env:PATH"
+
+        # Quick check
+        sonar-scanner.bat -v
+      displayName: 'Install SonarScanner CLI (Windows)'
+
+    # 3) Run the analysis – pass the token via env-var so it is masked
+    - powershell: |
+        $scannerDir = (Get-ChildItem sonar-scanner-* -Directory).FullName
+        $env:PATH   = "$scannerDir\bin;$env:PATH"
+
+        sonar-scanner.bat `
+          -Dsonar.projectKey=$(sonarQubeProjectKey) `
+          -Dsonar.projectName=$(sonarQubeProjectName) `
+          -Dsonar.projectVersion=$(Build.BuildNumber) `
+          -Dsonar.sources=src `
+          -Dsonar.exclusions=**\node_modules\** `
+          -Dsonar.host.url=$(sonarQubeUrl) `
+          -Dsonar.login=$env:SONAR_TOKEN
+      displayName: 'Run SonarQube analysis'
       env:
-        SONARQUBE_TOKEN: $(azure-sonarqube)
-
-    # Optional: Fail the build if Quality Gate fails
-    - script: |
-        echo "Checking SonarQube Quality Gate status..."
-        # You can add custom logic here to fail the build based on Quality Gate
-      displayName: 'Check Quality Gate'
-      condition: always()
-
+        SONAR_TOKEN: $(azure-sonarqube)
     - task: Docker@2
       displayName: Build and push image to container registry
       inputs:
