@@ -102,7 +102,7 @@ stages:
           -D"sonar.sources=src" `
           -D"sonar.exclusions=**\node_modules\**" `
           -D"sonar.host.url=$(sonarQubeUrl)" `
-          -D"sonar.organisation=asthajain1160521" `
+          -D"sonar.organization=asthajain1160521" `
           -D"sonar.login=$env:SONAR_TOKEN"
       displayName: 'Run SonarQube analysis'
       env:
