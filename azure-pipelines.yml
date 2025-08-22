@@ -54,6 +54,7 @@ stages:
       displayName: 'Publish code coverage'
 
     - script: |
+        cd src
         npm run build --if-present
       displayName: 'Build application'
 
