@@ -1,0 +1,30 @@
+# templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "nodejs-app.fullname" . }}-ingress
+  labels:
+    {{- include "nodejs-app.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.ingress.rewriteTarget | default "/" }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | default "nginx" }}  # Use this instead of annotation
+  rules:
+  {{- if .Values.ingress.host }}
+  - host: {{ .Values.ingress.host | quote }}
+    http:
+  {{- else }}
+  - http:
+  {{- end }}
+      paths:
+      - path: {{ .Values.ingress.path | default "/" }}
+        pathType: {{ .Values.ingress.pathType | default "Prefix" }}
+        backend:
+          service:
+            name: {{ include "nodejs-app.fullname" . }}-service
+            port:
+              number: {{ .Values.service.port }}
+

@@ -1,0 +1,61 @@
+# Default values for nodejs-app
+replicaCount: 3
+
+image:
+  repository: asthaazureregistry.azurecr.io/nodejs-app
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  # host: ""  # Leave empty to use default (no host specified)
+  path: "/"
+  pathType: "Prefix"
+  rewriteTarget: "/"
+  annotations: {}
+    # Add any additional annotations here
+  tls: []
+  #  - secretName: nodejs-app-tls
+  #    hosts:
+  #      - your-domain.com
+
+container:
+  port: 3000
+
+env:
+  nodeEnv: "dev"
+
+healthCheck:
+  path: "/health"
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+imagePullSecrets: []
+
