@@ -96,13 +96,13 @@ stages:
         $env:PATH   = "$scannerDir\bin;$env:PATH"
 
         sonar-scanner.bat `
-          -Dsonar.projectKey=$(sonarQubeProjectKey) `
-          -Dsonar.projectName=$(sonarQubeProjectName) `
-          -Dsonar.projectVersion=$(Build.BuildNumber) `
-          -Dsonar.sources=src `
-          -Dsonar.exclusions=**\node_modules\** `
-          -Dsonar.host.url=$(sonarQubeUrl) `
-          -Dsonar.login=$env:SONAR_TOKEN
+          -D"sonar.projectKey=$(sonarQubeProjectKey)" `
+          -D"sonar.projectName=$(sonarQubeProjectName)" `
+          -D"sonar.projectVersion=$(Build.BuildNumber)" `
+          -D"sonar.sources=src" `
+          -D"sonar.exclusions=**\node_modules\**" `
+          -D"sonar.host.url=$(sonarQubeUrl)" `
+          -D"sonar.login=$env:SONAR_TOKEN"
       displayName: 'Run SonarQube analysis'
       env:
         SONAR_TOKEN: $(azure-sonarqube)
