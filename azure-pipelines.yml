@@ -12,20 +12,43 @@ trigger:
     - azure-pipelines.yml
 
 # Variables
+
 variables:
-  # Container Registry Service Connection - you'll need to create this
-  dockerRegistryServiceConnection: 'my-docker-conn'
-  imageRepository: 'nodejs-app'
-  containerRegistry: 'asthaazureregistry.azurecr.io'
-  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
-  tag: '$(Build.BuildId)'
-  
-  # Kubernetes Service Connection - you'll need to create this
-  kubernetesServiceConnection: 'my-aks-conn'
-  kubernetesNamespace: 'default'
-  
-  # Agent Pool
-  vmImageName: 'ubuntu-latest'
+- group: keyvault-secrets   
+
+- name: dockerRegistryServiceConnection 
+  value: my-docker-conn
+
+- name: imageRepository
+  value: nodejs-app
+
+- name: containerRegistry
+  value: asthaazureregistry.azurecr.io
+
+- name: dockerfilePath
+  value: $(Build.SourcesDirectory)/Dockerfile
+
+- name: tag
+  value: $(Build.BuildId)
+
+- name: kubernetesServiceConnection
+  value: my-aks-conn
+
+- name: kubernetesNamespace
+  value: default
+
+- name: vmImageName
+  value: ubuntu-latest
+
+- name: sonarQubeUrl
+  value: 'https://sonarcloud.io'
+
+- name: sonarQubeProjectKey
+  value: 'asthajain1160521_astha-azure'
+
+- name: sonarQubeProjectName
+  value: 'astha-azure'
+
 
 stages:
 - stage: Build
@@ -47,7 +70,43 @@ stages:
         npm install
         npm run test
       displayName: 'Install dependencies and run tests'
-    
+    - script: |
+        # Download and install SonarQube CLI Scanner
+        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+        unzip sonar-scanner-cli-4.8.0.2856-linux.zip
+        sudo mv sonar-scanner-4.8.0.2856-linux /opt/sonar-scanner
+        sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
+        sonar-scanner -v
+      displayName: 'Install SonarQube Scanner'
+    - script: |
+        cat > sonar-project.properties << EOF
+        sonar.projectKey=$(sonarQubeProjectKey)
+        sonar.projectName=$(sonarQubeProjectName)
+        sonar.projectVersion=$(Build.BuildNumber)
+        sonar.sources=src
+        sonar.exclusions=**/node_modules/**,**/*.test.js,**/coverage/**
+        sonar.javascript.lcov.reportPaths=src/coverage/lcov.info
+        sonar.testExecutionReportPaths=src/test-results.xml
+        sonar.coverage.exclusions=**/*test*/**,**/node_modules/**
+        sonar.cpd.exclusions=**/*test*/**,**/node_modules/**
+        EOF
+      displayName: 'Create SonarQube project properties'
+    # Run SonarQube Analysis
+    - script: |
+        sonar-scanner \
+          -Dsonar.host.url=$(sonarQubeUrl) \
+          -Dsonar.login=$(azure-sonarqube)
+      displayName: 'Run SonarQube Analysis'
+      env:
+        SONARQUBE_TOKEN: $(azure-sonarqube)
+
+    # Optional: Fail the build if Quality Gate fails
+    - script: |
+        echo "Checking SonarQube Quality Gate status..."
+        # You can add custom logic here to fail the build based on Quality Gate
+      displayName: 'Check Quality Gate'
+      condition: always()
+
     - task: Docker@2
       displayName: Build and push image to container registry
       inputs:
@@ -58,6 +117,7 @@ stages:
         tags: |
           $(tag)
           latest
+      condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['Build.SourceBranch'], 'refs/heads/dev')))
     
     - task: PublishPipelineArtifact@1
       displayName: 'Publish Kubernetes manifests'
