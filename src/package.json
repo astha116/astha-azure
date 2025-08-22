@@ -1,14 +1,18 @@
 {
-  "name": "sample-node-app",
+  "name": "devops-sample-app",
   "version": "1.0.0",
-  "description": "Sample Node.js project for DevOps pipeline demo",
+  "description": "Sample app for DevOps learning",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "supertest": "^6.3.0"
   }
 }
-

@@ -1,16 +1,36 @@
+// const express = require('express');
+// const app = express();
+// const port = process.env.PORT || 3000;
+
+// app.get('/', (req, res) => {
+//   res.send('Hello World from Node.js!');
+// });
+
+// app.get('/health', (req, res) => {
+//   res.json({ status: "UP" });
+// });
+
+// app.listen(port, () => {
+//   console.log(`App listening at http://localhost:${port}`);
+// });
+
+// app.js
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
 
 app.get('/', (req, res) => {
-  res.send('Hello World from Node.js!');
+  res.json({ message: 'Hello DevOps!' });
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: "UP" });
+  res.json({ status: 'healthy' });
 });
 
-app.listen(port, () => {
-  console.log(`App listening at http://localhost:${port}`);
-});
+module.exports = app;
 
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`App running on port ${port}`);
+  });
+}
