@@ -1,75 +1,107 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
-# azure-devops-pipeline.yml
+# Azure DevOps Pipeline for Node.js App to AKS
 trigger:
-- main
-- dev
+  branches:
+    include:
+    - main
+    - dev
+  paths:
+    include:
+    - src/*
+    - Dockerfile
+    - Manifests/*
+    - azure-pipelines.yml
 
-pool:
-  name: Default
-  vmImage: 'ubuntu-latest'
-
+# Variables
 variables:
-  buildConfiguration: 'Release'
-  nodeVersion: '18.19.1'
+  # Container Registry Service Connection - you'll need to create this
+  dockerRegistryServiceConnection: 'my-docker-conn'
+  imageRepository: 'nodejs-app'
+  containerRegistry: 'asthaazureregistry.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
+  
+  # Kubernetes Service Connection - you'll need to create this
+  kubernetesServiceConnection: 'my-aks-conn'
+  kubernetesNamespace: 'default'
+  
+  # Agent Pool
+  vmImageName: 'ubuntu-latest'
 
 stages:
 - stage: Build
-  displayName: 'Build and Test'
+  displayName: Build and Push Image
   jobs:
   - job: Build
-    displayName: 'Build Job'
+    displayName: Build
+    pool:
+      name: Default
+      vmImage: $(vmImageName)
     steps:
     - task: NodeTool@0
-      inputs:
-        versionSpec: '$(nodeVersion)'
       displayName: 'Install Node.js'
-
+      inputs:
+        versionSpec: '18.x'
+    
     - script: |
         cd src
         npm install
-      displayName: 'Install dependencies'
-
-    - script: |
-        cd src
-        npm run test:coverage
-      displayName: 'Run tests with coverage'
-
-    - task: PublishTestResults@2
+        npm run test
+      displayName: 'Install dependencies and run tests'
+    
+    - task: Docker@2
+      displayName: Build and push image to container registry
       inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '**/junit.xml'
-        mergeTestResults: true
-      displayName: 'Publish test results'
-      condition: always()
-
-    - task: PublishCodeCoverageResults@1
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+          latest
+    
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish Kubernetes manifests'
       inputs:
-        codeCoverageTool: 'Cobertura'
-        summaryFileLocation: '**/coverage/cobertura-coverage.xml'
-        reportDirectory: '**/coverage/lcov-report'
-      displayName: 'Publish code coverage'
+        artifactName: 'manifests'
+        path: '$(Build.SourcesDirectory)/Manifests'
 
-    - script: |
-        cd src
-        npm run build --if-present
-      displayName: 'Build application'
-
-    - task: CopyFiles@2
-      inputs:
-        contents: |
-          **/*
-          !node_modules/**/*
-          !coverage/**/*
-          !.git/**/*
-        targetFolder: '$(Build.ArtifactStagingDirectory)'
-      displayName: 'Copy files to artifact directory'
-
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathToPublish: '$(Build.ArtifactStagingDirectory)'
-        artifactName: 'drop'
-      displayName: 'Publish build artifacts'
+- stage: Deploy
+  displayName: Deploy to AKS
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy to AKS
+    pool:
+      name: Default
+      vmImage: $(vmImageName)
+    environment: 'dev'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download manifests'
+            inputs:
+              artifactName: 'manifests'
+              downloadPath: '$(System.ArtifactsDirectory)/manifests'
+          
+          - task: KubernetesManifest@0
+            displayName: 'Deploy to Kubernetes cluster'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: $(kubernetesNamespace)
+              manifests: |
+                $(System.ArtifactsDirectory)/manifests/deployment.yaml
+                $(System.ArtifactsDirectory)/manifests/service.yaml
+              containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+          
+          - task: KubernetesManifest@0
+            displayName: 'Deploy Ingress (if exists)'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: $(kubernetesNamespace)
+              manifests: '$(System.ArtifactsDirectory)/manifests/ingress.yaml'
+            continueOnError: true
