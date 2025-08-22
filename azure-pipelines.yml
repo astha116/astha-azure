@@ -63,7 +63,7 @@ stages:
       displayName: 'Publish Kubernetes manifests'
       inputs:
         artifactName: 'manifests'
-        path: '$(Build.SourcesDirectory)/Manifests'
+        path: '$(Build.SourcesDirectory)/Manifest-files'
 
 - stage: Deploy
   displayName: Deploy to AKS
