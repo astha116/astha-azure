@@ -32,6 +32,12 @@ variables:
 
 - name: kubernetesServiceConnection
   value: my-aks-conn
+- name: DevkubernetesServiceConnection
+  value: dev-aks-conn
+- name: TestkubernetesServiceConnection
+  value: test-aks-conn
+- name: ProdkubernetesServiceConnection
+  value: prod-aks-conn
 
 - name: kubernetesNamespace
   value: default
@@ -167,19 +173,19 @@ stages:
           #         labels:
           #           environment: development
             # continueOnError: true
-          - script: |
-              echo "Creating namespace: $(targetNamespace)"
-              kubectl create namespace $(targetNamespace) --dry-run=client -o yaml | kubectl apply -f -
-              kubectl label namespace $(targetNamespace) environment=development --overwrite
-              echo "Namespace $(targetNamespace) ready"
-            displayName: 'Ensure Dev Namespace Exists'
-            continueOnError: true
+          # - script: |
+          #     echo "Creating namespace: $(targetNamespace)"
+          #     kubectl create namespace $(targetNamespace) --dry-run=client -o yaml | kubectl apply -f -
+          #     kubectl label namespace $(targetNamespace) environment=development --overwrite
+          #     echo "Namespace $(targetNamespace) ready"
+          #   displayName: 'Ensure Dev Namespace Exists'
+          #   continueOnError: true
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
             inputs:
               connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              kubernetesServiceConnection: $(DevkubernetesServiceConnection)
               namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
@@ -219,33 +225,33 @@ stages:
             inputs:
               helmVersionToInstall: 'latest'
           # Create Test Namespace (Automatic)
-          - task: Kubernetes@1
-            displayName: 'Create Test Namespace'
-            inputs:
-              connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceEndpoint: $(kubernetesServiceConnection)
-              command: 'apply'
-              arguments: '-f -'
-              inline: |
-                apiVersion: v1
-                kind: Namespace
-                metadata:
-                  name: $(targetNamespace)
-                  labels:
-                    environment: test
-            continueOnError: true
+          # - task: Kubernetes@1
+          #   displayName: 'Create Test Namespace'
+          #   inputs:
+          #     connectionType: 'Kubernetes Service Connection'
+          #     kubernetesServiceEndpoint: $(TestkubernetesServiceConnection)
+          #     command: 'apply'
+          #     arguments: '-f -'
+          #     inline: |
+          #       apiVersion: v1
+          #       kind: Namespace
+          #       metadata:
+          #         name: $(targetNamespace)
+          #         labels:
+          #           environment: test
+          #   continueOnError: true
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
             inputs:
               connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              kubernetesServiceConnection: $(TestkubernetesServiceConnection)
               namespace: $(kubernetesNamespace)
               command: upgrade
               chartType: FilePath
-              chartPath: '$(Build.SourcesDirectory)/Manifest-files'
+              chartPath: '$(Build.ArtifactsDirectory)/manifests'
               releaseName: 'nodejs-app-test'
-              valueFile: '$(System.ArtifactsDirectory)/Manifest-files/values-test.yaml'
+              valueFile: '$(System.ArtifactsDirectory)/manifests/values-test.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
@@ -280,27 +286,27 @@ stages:
             inputs:
               helmVersionToInstall: 'latest'
           # Create Prod Namespace (Automatic)
-          - task: Kubernetes@1
-            displayName: 'Create Prod Namespace'
-            inputs:
-              connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceEndpoint: $(kubernetesServiceConnection)
-              command: 'apply'
-              arguments: '-f -'
-              inline: |
-                apiVersion: v1
-                kind: Namespace
-                metadata:
-                  name: $(targetNamespace)
-                  labels:
-                    environment: production
-            continueOnError: true
+          # - task: Kubernetes@1
+          #   displayName: 'Create Prod Namespace'
+          #   inputs:
+          #     connectionType: 'Kubernetes Service Connection'
+          #     kubernetesServiceEndpoint: $(kubernetesServiceConnection)
+          #     command: 'apply'
+          #     arguments: '-f -'
+          #     inline: |
+          #       apiVersion: v1
+          #       kind: Namespace
+          #       metadata:
+          #         name: $(targetNamespace)
+          #         labels:
+          #           environment: production
+          #   continueOnError: true
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
             inputs:
               connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              kubernetesServiceConnection: $(ProdkubernetesServiceConnection)
               namespace: $(kubernetesNamespace)
               command: upgrade
               chartType: FilePath
