@@ -179,9 +179,9 @@ stages:
               namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
-              chartPath: '$(System.ArtifactsDirectory)/manifests'
+              chartPath: '$(System.ArtifactsDirectory)'
               releaseName: 'nodejs-app-dev'
-              valueFile: '$(System.ArtifactsDirectory)/manifests/values-dev.yaml'
+              valueFile: '$(System.ArtifactsDirectory)/values-dev.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
@@ -239,9 +239,9 @@ stages:
               namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
-              chartPath: '$(System.ArtifactsDirectory)/manifests'
+              chartPath: '$(System.ArtifactsDirectory)'
               releaseName: 'nodejs-app-test'
-              valueFile: '$(System.ArtifactsDirectory)/manifests/values-test.yaml'
+              valueFile: '$(System.ArtifactsDirectory)/values-test.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
@@ -299,9 +299,9 @@ stages:
               namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
-              chartPath: '$(System.ArtifactsDirectory)/manifests'
+              chartPath: '$(System.ArtifactsDirectory)'
               releaseName: 'nodejs-app-prod'
-              valueFile: '$(System.ArtifactsDirectory)/manifests/values-prod.yaml'
+              valueFile: '$(System.ArtifactsDirectory)/values-prod.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
