@@ -36,7 +36,13 @@ stages:
               backendAzureRmContainerName: 'tfstate'
               backendAzureRmKey: 'terraform.tfstate'
               workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
-
+          - script: |
+              echo "Generating tfvars file..."
+              mkdir -p $(System.DefaultWorkingDirectory)/terraform
+              env | grep '^TF_VAR_' | sed 's/^TF_VAR_//' > $(System.DefaultWorkingDirectory)/terraform/ado.auto.tfvars
+              echo "Contents of ado.auto.tfvars:"
+              cat $(System.DefaultWorkingDirectory)/terraform/ado.auto.tfvars
+            displayName: 'Export TF_VARs to auto.tfvars'
           # Plan
           - task: TerraformTaskV4@4
             displayName: 'Terraform Plan'
