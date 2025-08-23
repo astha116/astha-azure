@@ -11,7 +11,6 @@ trigger:
     - azure-pipelines.yml
 
 # Variables
-
 variables:
 - group: keyvault-secrets   
 
@@ -32,10 +31,13 @@ variables:
 
 - name: kubernetesServiceConnection
   value: my-aks-conn
+
 - name: DevkubernetesServiceConnection
   value: dev-aks-conn
+
 - name: TestkubernetesServiceConnection
   value: test-aks-conn
+
 - name: ProdkubernetesServiceConnection
   value: prod-aks-conn
 
@@ -53,7 +55,6 @@ variables:
 
 - name: sonarQubeProjectName
   value: 'astha-azure'
-
 
 stages:
 - stage: Build
@@ -76,7 +77,7 @@ stages:
         npm run test
       displayName: 'Install dependencies and run tests'
 
-    # 2) Download & install SonarScanner CLI **for Windows**
+    # SonarQube Analysis
     - powershell: |
         $ErrorActionPreference = 'Stop'
         $ver  = '5.0.1.3006'
@@ -87,15 +88,12 @@ stages:
         Write-Host "Extracting ..."
         Expand-Archive -Path $zip -DestinationPath .
 
-        # Add scanner\bin to PATH for this session
         $scannerDir = (Get-ChildItem sonar-scanner-* -Directory)[0].FullName
         $env:PATH   = "$scannerDir\bin;$env:PATH"
 
-        # Quick check
         sonar-scanner.bat -v
       displayName: 'Install SonarScanner CLI (Windows)'
 
-    # 3) Run the analysis – pass the token via env-var so it is masked
     - powershell: |
         $scannerDir = (Get-ChildItem sonar-scanner-* -Directory).FullName
         $env:PATH   = "$scannerDir\bin;$env:PATH"
@@ -112,6 +110,7 @@ stages:
       displayName: 'Run SonarQube analysis'
       env:
         SONAR_TOKEN: $(azure-sonarqube)
+
     - task: Docker@2
       displayName: Build and push image to container registry
       inputs:
@@ -153,33 +152,11 @@ stages:
             inputs:
               artifactName: 'manifests'
               downloadPath: '$(System.ArtifactsDirectory)'
+
           - task: HelmInstaller@1
             displayName: 'Install Helm'
             inputs:
               helmVersionToInstall: 'latest'
-          # Create Dev Namespace (Automatic)
-          # - task: Kubernetes@1
-          #   displayName: 'Create Dev Namespace'
-          #   inputs:
-          #     connectionType: 'Kubernetes Service Connection'
-          #     kubernetesServiceEndpoint: $(kubernetesServiceConnection)
-          #     command: 'apply'
-          #     arguments: '-f -'
-          #     inline: |
-          #       apiVersion: v1
-          #       kind: Namespace
-          #       metadata:
-          #         name: $(targetNamespace)
-          #         labels:
-          #           environment: development
-            # continueOnError: true
-          # - script: |
-          #     echo "Creating namespace: $(targetNamespace)"
-          #     kubectl create namespace $(targetNamespace) --dry-run=client -o yaml | kubectl apply -f -
-          #     kubectl label namespace $(targetNamespace) environment=development --overwrite
-          #     echo "Namespace $(targetNamespace) ready"
-          #   displayName: 'Ensure Dev Namespace Exists'
-          #   continueOnError: true
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
@@ -195,11 +172,13 @@ stages:
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
+                ingress.path=/dev
               install: true
               waitForExecution: true
+
 - stage: DeployTest
   displayName: Deploy to Test with Helm
-  dependsOn: Build
+  dependsOn: DeployDev
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
   - deployment: DeployTest
@@ -218,28 +197,13 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Helm Chart'
             inputs:
-              artifactName: 'Manifest-files'
+              artifactName: 'manifests'
               downloadPath: '$(System.ArtifactsDirectory)'
+
           - task: HelmInstaller@1
             displayName: 'Install Helm'
             inputs:
               helmVersionToInstall: 'latest'
-          # Create Test Namespace (Automatic)
-          # - task: Kubernetes@1
-          #   displayName: 'Create Test Namespace'
-          #   inputs:
-          #     connectionType: 'Kubernetes Service Connection'
-          #     kubernetesServiceEndpoint: $(TestkubernetesServiceConnection)
-          #     command: 'apply'
-          #     arguments: '-f -'
-          #     inline: |
-          #       apiVersion: v1
-          #       kind: Namespace
-          #       metadata:
-          #         name: $(targetNamespace)
-          #         labels:
-          #           environment: test
-          #   continueOnError: true
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
@@ -249,18 +213,19 @@ stages:
               namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
-              chartPath: '$(Build.ArtifactsDirectory)/manifests'
+              chartPath: '$(System.ArtifactsDirectory)/manifests'
               releaseName: 'nodejs-app-test'
               valueFile: '$(System.ArtifactsDirectory)/manifests/values-test.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
+                ingress.path=/test
               install: true
               waitForExecution: true
 
 - stage: DeployProd
   displayName: Deploy to Prod with Helm
-  dependsOn: Build
+  dependsOn: DeployTest
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
   - deployment: DeployProd
@@ -271,7 +236,7 @@ stages:
     environment: 'prod'
     variables:
     - name: targetNamespace
-      value: 'prod'
+      value: 'production'
     strategy:
       runOnce:
         deploy:
@@ -281,26 +246,11 @@ stages:
             inputs:
               artifactName: 'manifests'
               downloadPath: '$(System.ArtifactsDirectory)'
+
           - task: HelmInstaller@1
             displayName: 'Install Helm'
             inputs:
               helmVersionToInstall: 'latest'
-          # Create Prod Namespace (Automatic)
-          # - task: Kubernetes@1
-          #   displayName: 'Create Prod Namespace'
-          #   inputs:
-          #     connectionType: 'Kubernetes Service Connection'
-          #     kubernetesServiceEndpoint: $(kubernetesServiceConnection)
-          #     command: 'apply'
-          #     arguments: '-f -'
-          #     inline: |
-          #       apiVersion: v1
-          #       kind: Namespace
-          #       metadata:
-          #         name: $(targetNamespace)
-          #         labels:
-          #           environment: production
-          #   continueOnError: true
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
@@ -310,11 +260,12 @@ stages:
               namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
-              chartPath: '$(Build.SourcesDirectory)/manifests'
+              chartPath: '$(System.ArtifactsDirectory)/manifests'
               releaseName: 'nodejs-app-prod'
               valueFile: '$(System.ArtifactsDirectory)/manifests/values-prod.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
+                ingress.path=/
               install: true
               waitForExecution: true
