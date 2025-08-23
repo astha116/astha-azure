@@ -40,7 +40,7 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'plan'
-              workingDirectory: '$(System.DefaultWorkingDirectory)'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
               environmentServiceNameAzureRM: 'terraform-azure-conn'
               vars: |
                 -var-file="terraform.tfvars"
@@ -51,7 +51,7 @@ stages:
             inputs:
               provider: 'azurerm'
               command: 'apply'
-              workingDirectory: '$(System.DefaultWorkingDirectory)'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
               environmentServiceNameAzureRM: 'terraform-azure-conn'
               vars: |
                 -var-file="terraform.tfvars"
