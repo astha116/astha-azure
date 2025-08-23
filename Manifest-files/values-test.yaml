@@ -44,7 +44,7 @@ healthCheck:
 autoscaling:
   enabled: false  # Set to true if you want HPA enabled
   minReplicas: 1
-  maxReplicas: 2
+  maxReplicas: 1
   targetCPUUtilizationPercentage: 80
 
 # Medium resources for testing
