@@ -152,20 +152,28 @@ stages:
             inputs:
               helmVersionToInstall: 'latest'
           # Create Dev Namespace (Automatic)
+          # - task: Kubernetes@1
+          #   displayName: 'Create Dev Namespace'
+          #   inputs:
+          #     connectionType: 'Kubernetes Service Connection'
+          #     kubernetesServiceEndpoint: $(kubernetesServiceConnection)
+          #     command: 'apply'
+          #     arguments: '-f -'
+          #     inline: |
+          #       apiVersion: v1
+          #       kind: Namespace
+          #       metadata:
+          #         name: $(targetNamespace)
+          #         labels:
+          #           environment: development
+            # continueOnError: true
           - task: Kubernetes@1
             displayName: 'Create Dev Namespace'
             inputs:
-              connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceEndpoint: $(kubernetesServiceConnection)
-              command: 'apply'
-              arguments: '-f -'
-              inline: |
-                apiVersion: v1
-                kind: Namespace
-                metadata:
-                  name: $(targetNamespace)
-                  labels:
-                    environment: development
+                connectionType: 'Kubernetes Service Connection'
+                kubernetesServiceEndpoint: $(kubernetesServiceConnection)
+                command: 'create'
+                arguments: 'namespace $(targetNamespace) --dry-run=client -o yaml | kubectl apply -f -'
             continueOnError: true
 
           - task: HelmDeploy@0
