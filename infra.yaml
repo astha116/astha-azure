@@ -49,7 +49,7 @@ stages:
                 $val = $var.Value
                 $output += "$key = `"$val`"`n"
                }
-               $output | Out-File -FilePath "terraform.auto.tfvars" -Encoding utf8
+               $output | Out-File -FilePath "$(System.DefaultWorkingDirectory)/terraform/terraform.auto.tfvars" -Encoding utf8
           # Plan
           - task: TerraformTaskV4@4
             displayName: 'Terraform Plan'
