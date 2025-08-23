@@ -40,6 +40,8 @@ spec:
         env:
         - name: NODE_ENV
           value: {{ .Values.env.nodeEnv | quote }}
+        - name: CUSTOM_MESSAGE
+          value: {{ .Values.env.customMessage | quote }}
         - name: PORT
           value: {{ .Values.container.port | quote }}
         livenessProbe:

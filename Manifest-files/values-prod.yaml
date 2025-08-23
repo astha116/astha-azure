@@ -34,6 +34,7 @@ container:
 
 env:
   nodeEnv: "production"
+  customMessage: "Hello DevOps from Prod!"
 
 healthCheck:
   path: "/health"
