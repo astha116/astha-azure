@@ -156,7 +156,7 @@ stages:
             displayName: 'Create Dev Namespace'
             inputs:
               connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              kubernetesServiceEndpoint: $(kubernetesServiceConnection)
               command: 'apply'
               arguments: '-f -'
               inline: |
@@ -216,7 +216,7 @@ stages:
             displayName: 'Create Test Namespace'
             inputs:
               connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              kubernetesServiceEndpoint: $(kubernetesServiceConnection)
               command: 'apply'
               arguments: '-f -'
               inline: |
@@ -277,7 +277,7 @@ stages:
             displayName: 'Create Prod Namespace'
             inputs:
               connectionType: 'Kubernetes Service Connection'
-              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              kubernetesServiceEndpoint: $(kubernetesServiceConnection)
               command: 'apply'
               arguments: '-f -'
               inline: |
