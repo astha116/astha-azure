@@ -246,7 +246,7 @@ stages:
             inputs:
               connectionType: 'Kubernetes Service Connection'
               kubernetesServiceConnection: $(TestkubernetesServiceConnection)
-              namespace: $(kubernetesNamespace)
+              namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
               chartPath: '$(Build.ArtifactsDirectory)/manifests'
@@ -307,12 +307,12 @@ stages:
             inputs:
               connectionType: 'Kubernetes Service Connection'
               kubernetesServiceConnection: $(ProdkubernetesServiceConnection)
-              namespace: $(kubernetesNamespace)
+              namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
-              chartPath: '$(Build.SourcesDirectory)/Manifest-files'
+              chartPath: '$(Build.SourcesDirectory)/manifests'
               releaseName: 'nodejs-app-prod'
-              valueFile: '$(System.ArtifactsDirectory)/Manifest-files/values-prod.yaml'
+              valueFile: '$(System.ArtifactsDirectory)/manifests/values-prod.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
