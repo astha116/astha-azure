@@ -240,7 +240,7 @@ stages:
           - task: HelmInstaller@1
             displayName: 'Install Helm'
             inputs:
-              helmVersionToInstaller: 'latest'
+              helmVersionToInstall: 'latest'
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
@@ -273,7 +273,7 @@ stages:
     environment: 'prod'
     variables:
     - name: targetNamespace
-      value: 'production'
+      value: 'prod'
     strategy:
       runOnce:
         deploy:
