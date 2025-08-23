@@ -279,7 +279,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Helm Chart'
             inputs:
-              artifactName: 'Manifest-files'
+              artifactName: 'manifests'
               downloadPath: '$(System.ArtifactsDirectory)'
           - task: HelmInstaller@1
             displayName: 'Install Helm'
