@@ -153,6 +153,19 @@ stages:
               artifactName: 'manifests'
               downloadPath: '$(System.ArtifactsDirectory)'
 
+          # Debug step to check what was downloaded
+          - script: |
+              echo "Checking downloaded artifacts..."
+              dir "$(System.ArtifactsDirectory)" /s
+              echo "Contents of manifests directory:"
+              if exist "$(System.ArtifactsDirectory)\manifests" (
+                dir "$(System.ArtifactsDirectory)\manifests" /s
+              ) else (
+                echo "Manifests directory not found!"
+              )
+            displayName: 'Debug: List downloaded files'
+            condition: always()
+
           - task: HelmInstaller@1
             displayName: 'Install Helm'
             inputs:
@@ -200,10 +213,23 @@ stages:
               artifactName: 'manifests'
               downloadPath: '$(System.ArtifactsDirectory)'
 
+          # Debug step to check what was downloaded
+          - script: |
+              echo "Checking downloaded artifacts..."
+              dir "$(System.ArtifactsDirectory)" /s
+              echo "Contents of manifests directory:"
+              if exist "$(System.ArtifactsDirectory)\manifests" (
+                dir "$(System.ArtifactsDirectory)\manifests" /s
+              ) else (
+                echo "Manifests directory not found!"
+              )
+            displayName: 'Debug: List downloaded files'
+            condition: always()
+
           - task: HelmInstaller@1
             displayName: 'Install Helm'
             inputs:
-              helmVersionToInstall: 'latest'
+              helmVersionToInstaller: 'latest'
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
@@ -246,6 +272,19 @@ stages:
             inputs:
               artifactName: 'manifests'
               downloadPath: '$(System.ArtifactsDirectory)'
+
+          # Debug step to check what was downloaded
+          - script: |
+              echo "Checking downloaded artifacts..."
+              dir "$(System.ArtifactsDirectory)" /s
+              echo "Contents of manifests directory:"
+              if exist "$(System.ArtifactsDirectory)\manifests" (
+                dir "$(System.ArtifactsDirectory)\manifests" /s
+              ) else (
+                echo "Manifests directory not found!"
+              )
+            displayName: 'Debug: List downloaded files'
+            condition: always()
 
           - task: HelmInstaller@1
             displayName: 'Install Helm'
