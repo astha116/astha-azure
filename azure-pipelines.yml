@@ -167,13 +167,12 @@ stages:
           #         labels:
           #           environment: development
             # continueOnError: true
-          - task: Kubernetes@1
-            displayName: 'Create Dev Namespace'
-            inputs:
-                connectionType: 'Kubernetes Service Connection'
-                kubernetesServiceEndpoint: $(kubernetesServiceConnection)
-                command: 'create'
-                arguments: 'namespace $(targetNamespace) --dry-run=client -o yaml | kubectl apply -f -'
+          - script: |
+              echo "Creating namespace: $(targetNamespace)"
+              kubectl create namespace $(targetNamespace) --dry-run=client -o yaml | kubectl apply -f -
+              kubectl label namespace $(targetNamespace) environment=development --overwrite
+              echo "Namespace $(targetNamespace) ready"
+            displayName: 'Ensure Dev Namespace Exists'
             continueOnError: true
 
           - task: HelmDeploy@0
