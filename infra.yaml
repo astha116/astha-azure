@@ -33,6 +33,7 @@ stages:
               backendAzureRmStorageAccountName: 'tfstate20055'
               backendAzureRmContainerName: 'tfstate'
               backendAzureRmKey: 'terraform.tfstate'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
 
           # Plan
           - task: TerraformTaskV4@4
