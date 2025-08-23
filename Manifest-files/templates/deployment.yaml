@@ -1,3 +1,4 @@
+# templates/deployment.yaml - Updated Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,16 +6,18 @@ metadata:
   labels:
     {{- include "nodejs-app.labels" . | nindent 4 }}
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "nodejs-app.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "nodejs-app.selectorLabels" . | nindent 8 }}
     spec:
@@ -25,32 +28,46 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.container.port }}
-              protocol: TCP
-          env:
-            - name: NODE_ENV
-              value: {{ .Values.env.nodeEnv | quote }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.healthCheck.path }}
-              port: http
-            initialDelaySeconds: {{ .Values.healthCheck.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.healthCheck.livenessProbe.periodSeconds }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.healthCheck.path }}
-              port: http
-            initialDelaySeconds: {{ .Values.healthCheck.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.healthCheck.readinessProbe.periodSeconds }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.container.port }}
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: {{ .Values.env.nodeEnv | quote }}
+        - name: PORT
+          value: {{ .Values.container.port | quote }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.healthCheck.path }}
+            port: http
+          initialDelaySeconds: {{ .Values.healthCheck.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.livenessProbe.periodSeconds }}
+          {{- if .Values.healthCheck.livenessProbe.timeoutSeconds }}
+          timeoutSeconds: {{ .Values.healthCheck.livenessProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if .Values.healthCheck.livenessProbe.failureThreshold }}
+          failureThreshold: {{ .Values.healthCheck.livenessProbe.failureThreshold }}
+          {{- end }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.healthCheck.path }}
+            port: http
+          initialDelaySeconds: {{ .Values.healthCheck.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.readinessProbe.periodSeconds }}
+          {{- if .Values.healthCheck.readinessProbe.timeoutSeconds }}
+          timeoutSeconds: {{ .Values.healthCheck.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if .Values.healthCheck.readinessProbe.failureThreshold }}
+          failureThreshold: {{ .Values.healthCheck.readinessProbe.failureThreshold }}
+          {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -63,4 +80,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-

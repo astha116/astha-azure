@@ -1,0 +1,141 @@
+# values-prod.yaml - Production Environment
+replicaCount: 3
+
+image:
+  repository: asthaazureregistry.azurecr.io/nodejs-app
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  # host: ""  # Leave empty - will use LoadBalancer IP or cluster default
+  path: "/"
+  pathType: "Prefix"
+  rewriteTarget: "/"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Disabled since no domain
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  tls: []  # Disabled since no custom domain
+
+container:
+  port: 3000
+
+env:
+  nodeEnv: "production"
+
+healthCheck:
+  path: "/health"
+  livenessProbe:
+    initialDelaySeconds: 60  # Longer for production
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Production-grade resources
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Production autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Production-specific configurations
+nodeSelector: {}
+
+tolerations: []
+
+# Anti-affinity to spread pods across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - nodejs-app
+        topologyKey: kubernetes.io/hostname
+
+podAnnotations:
+  environment: "production"
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"
+  backup.kubernetes.io/enabled: "true"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+    - ALL
+
+imagePullSecrets: []
+
+# Production-specific additions
+persistence:
+  enabled: true
+  storageClass: "premium-ssd"
+  size: 10Gi
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: monitoring
+
+# Resource quotas and limits
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "2"
+    requests.memory: "4Gi"
+    limits.cpu: "4"
+    limits.memory: "8Gi"

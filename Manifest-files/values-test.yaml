@@ -1,0 +1,70 @@
+# values-test.yaml - Test Environment
+replicaCount: 2
+
+image:
+  repository: asthaazureregistry.azurecr.io/nodejs-app
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  # host: ""  # Leave empty - will use LoadBalancer IP or cluster default
+  path: "/test"
+  pathType: "Prefix"
+  rewriteTarget: "/"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Disabled since no domain
+    nginx.ingress.kubernetes.io/rate-limit: "100"  # Rate limiting for test
+  tls: []  # Disabled since no custom domain
+
+container:
+  port: 3000
+
+env:
+  nodeEnv: "test"
+
+healthCheck:
+  path: "/health"
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+# Medium resources for testing
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Add autoscaling for test environment
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations:
+  environment: "test"
+  prometheus.io/scrape: "true"  # Enable monitoring
+  prometheus.io/port: "3000"
+podSecurityContext: {}
+securityContext: {}
+imagePullSecrets: []

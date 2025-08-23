@@ -1,0 +1,59 @@
+# values-dev.yaml - Development Environment
+replicaCount: 1
+
+image:
+  repository: asthaazureregistry.azurecr.io/nodejs-app
+  pullPolicy: Always  # Always pull for development
+  tag: "dev-latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  # host: ""  # Leave empty - will use LoadBalancer IP or cluster default
+  path: "/dev"
+  pathType: "Prefix"
+  rewriteTarget: "/"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Allow HTTP for dev
+  tls: []
+
+container:
+  port: 3000
+
+env:
+  nodeEnv: "development"
+
+healthCheck:
+  path: "/health"
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+# Minimal resources for development
+resources:
+  limits:
+    cpu: 250m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations:
+  environment: "development"
+podSecurityContext: {}
+securityContext: {}
+imagePullSecrets: []
