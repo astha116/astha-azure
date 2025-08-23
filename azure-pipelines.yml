@@ -3,7 +3,6 @@ trigger:
   branches:
     include:
     - main
-    - dev
   paths:
     include:
     - src/*
@@ -125,25 +124,49 @@ stages:
         artifactName: 'manifests'
         path: '$(Build.SourcesDirectory)/Manifest-files/'
 
-- stage: Deploy
-  displayName: Deploy to AKS with Helm
+- stage: DeployDev
+  displayName: Deploy to Dev with Helm
   dependsOn: Build
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
-  - deployment: Deploy
-    displayName: Deploy via Helm
+  - deployment: DeployDev
+    displayName: Deploy to Dev via Helm
     pool:
       name: Default
       vmImage: $(vmImageName)
     environment: 'dev'
+    variables:
+    - name: targetNamespace
+      value: 'dev'
     strategy:
       runOnce:
         deploy:
           steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Helm Chart'
+            inputs:
+              artifactName: 'helm-chart'
+              downloadPath: '$(System.ArtifactsDirectory)'
           - task: HelmInstaller@1
             displayName: 'Install Helm'
             inputs:
               helmVersionToInstall: 'latest'
+          # Create Dev Namespace (Automatic)
+          - task: Kubernetes@1
+            displayName: 'Create Dev Namespace'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              command: 'apply'
+              arguments: '-f -'
+              inline: |
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: $(targetNamespace)
+                  labels:
+                    environment: development
+            continueOnError: true
 
           - task: HelmDeploy@0
             displayName: 'Helm upgrade/install release'
@@ -154,8 +177,131 @@ stages:
               command: upgrade
               chartType: FilePath
               chartPath: '$(Build.SourcesDirectory)/Manifest-files'
-              releaseName: 'nodejs-app'
+              releaseName: 'nodejs-app-dev'
+              valueFile: '$(System.ArtifactsDirectory)/Manifest-files/values-dev.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
               install: true
+              waitForExecution: true
+- stage: DeployTest
+  displayName: Deploy to Test with Helm
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployTest
+    displayName: Deploy to Test via Helm
+    pool:
+      name: Default
+      vmImage: $(vmImageName)
+    environment: 'test'
+    variables:
+    - name: targetNamespace
+      value: 'test'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Helm Chart'
+            inputs:
+              artifactName: 'helm-chart'
+              downloadPath: '$(System.ArtifactsDirectory)'
+          - task: HelmInstaller@1
+            displayName: 'Install Helm'
+            inputs:
+              helmVersionToInstall: 'latest'
+          # Create Test Namespace (Automatic)
+          - task: Kubernetes@1
+            displayName: 'Create Test Namespace'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              command: 'apply'
+              arguments: '-f -'
+              inline: |
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: $(targetNamespace)
+                  labels:
+                    environment: test
+            continueOnError: true
+
+          - task: HelmDeploy@0
+            displayName: 'Helm upgrade/install release'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: $(kubernetesNamespace)
+              command: upgrade
+              chartType: FilePath
+              chartPath: '$(Build.SourcesDirectory)/Manifest-files'
+              releaseName: 'nodejs-app-test'
+              valueFile: '$(System.ArtifactsDirectory)/Manifest-files/values-test.yaml'
+              overrideValues: |
+                image.repository=$(containerRegistry)/$(imageRepository)
+                image.tag=$(tag)
+              install: true
+              waitForExecution: true
+
+- stage: DeployProd
+  displayName: Deploy to Prod with Helm
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployProd
+    displayName: Deploy to Prod via Helm
+    pool:
+      name: Default
+      vmImage: $(vmImageName)
+    environment: 'prod'
+    variables:
+    - name: targetNamespace
+      value: 'prod'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Helm Chart'
+            inputs:
+              artifactName: 'helm-chart'
+              downloadPath: '$(System.ArtifactsDirectory)'
+          - task: HelmInstaller@1
+            displayName: 'Install Helm'
+            inputs:
+              helmVersionToInstall: 'latest'
+          # Create Prod Namespace (Automatic)
+          - task: Kubernetes@1
+            displayName: 'Create Prod Namespace'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              command: 'apply'
+              arguments: '-f -'
+              inline: |
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: $(targetNamespace)
+                  labels:
+                    environment: production
+            continueOnError: true
+
+          - task: HelmDeploy@0
+            displayName: 'Helm upgrade/install release'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: $(kubernetesNamespace)
+              command: upgrade
+              chartType: FilePath
+              chartPath: '$(Build.SourcesDirectory)/Manifest-files'
+              releaseName: 'nodejs-app-prod'
+              valueFile: '$(System.ArtifactsDirectory)/Manifest-files/values-prod.yaml'
+              overrideValues: |
+                image.repository=$(containerRegistry)/$(imageRepository)
+                image.tag=$(tag)
+              install: true
+              waitForExecution: true
