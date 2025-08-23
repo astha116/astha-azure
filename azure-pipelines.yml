@@ -145,7 +145,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Helm Chart'
             inputs:
-              artifactName: 'Manifest-files'
+              artifactName: 'manifests'
               downloadPath: '$(System.ArtifactsDirectory)'
           - task: HelmInstaller@1
             displayName: 'Install Helm'
@@ -173,12 +173,12 @@ stages:
             inputs:
               connectionType: 'Kubernetes Service Connection'
               kubernetesServiceConnection: $(kubernetesServiceConnection)
-              namespace: $(kubernetesNamespace)
+              namespace: $(targetNamespace)
               command: upgrade
               chartType: FilePath
-              chartPath: '$(Build.SourcesDirectory)/Manifest-files'
+              chartPath: '$(System.ArtifactsDirectory)/manifests'
               releaseName: 'nodejs-app-dev'
-              valueFile: '$(System.ArtifactsDirectory)/Manifest-files/values-dev.yaml'
+              valueFile: '$(System.ArtifactsDirectory)/manifests/values-dev.yaml'
               overrideValues: |
                 image.repository=$(containerRegistry)/$(imageRepository)
                 image.tag=$(tag)
