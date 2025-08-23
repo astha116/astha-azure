@@ -39,11 +39,11 @@ healthCheck:
   readinessProbe:
     initialDelaySeconds: 5
     periodSeconds: 5
-    
+
 autoscaling:
   enabled: false  # Set to true if you want HPA enabled
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 1
   targetCPUUtilizationPercentage: 80
 # Minimal resources for development
 resources:
