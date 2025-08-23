@@ -1,5 +1,5 @@
 # values-prod.yaml - Production Environment
-replicaCount: 3
+replicaCount: 2
 
 image:
   repository: asthaazureregistry.azurecr.io/nodejs-app

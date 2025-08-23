@@ -1,5 +1,5 @@
 # values-test.yaml - Test Environment
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: asthaazureregistry.azurecr.io/nodejs-app
