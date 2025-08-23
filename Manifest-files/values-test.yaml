@@ -42,11 +42,11 @@ healthCheck:
     initialDelaySeconds: 5
     periodSeconds: 5
 
-autoscaling:
-  enabled: false  # Set to true if you want HPA enabled
-  minReplicas: 1
-  maxReplicas: 1
-  targetCPUUtilizationPercentage: 80
+# autoscaling:
+#   enabled: false  # Set to true if you want HPA enabled
+#   minReplicas: 1
+#   maxReplicas: 1
+#   targetCPUUtilizationPercentage: 80
 
 # Medium resources for testing
 resources:
@@ -60,8 +60,8 @@ resources:
 # Add autoscaling for test environment
 autoscaling:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 5
+  minReplicas: 1
+  maxReplicas: 1
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 
