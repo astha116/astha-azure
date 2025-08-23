@@ -7,7 +7,9 @@ trigger:
 pool:
   name: Default
   vmImage: 'ubuntu-latest'
-
+variables:
+  - group: terraform-vars
+  
 stages:
   - stage: Terraform
     displayName: 'Terraform Deploy'
@@ -43,7 +45,8 @@ stages:
               command: 'plan'
               workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
               environmentServiceNameAzureRM: 'terraform-azure-conn'
-              commandOptions: '-var-file="terraform.tfvars"'
+              vars: |
+                -var-file="vars/terraform.tfvars"
 
           # Apply
           - task: TerraformTaskV4@4
@@ -53,5 +56,6 @@ stages:
               command: 'apply'
               workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
               environmentServiceNameAzureRM: 'terraform-azure-conn'
-              commandOptions: '-var-file="terraform.tfvars"'
+              vars: |
+                -var-file="vars/terraform.tfvars"
               args: '-auto-approve'
