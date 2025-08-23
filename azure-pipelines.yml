@@ -145,7 +145,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Helm Chart'
             inputs:
-              artifactName: 'helm-chart'
+              artifactName: 'Manifest-files'
               downloadPath: '$(System.ArtifactsDirectory)'
           - task: HelmInstaller@1
             displayName: 'Install Helm'
@@ -205,7 +205,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Helm Chart'
             inputs:
-              artifactName: 'helm-chart'
+              artifactName: 'Manifest-files'
               downloadPath: '$(System.ArtifactsDirectory)'
           - task: HelmInstaller@1
             displayName: 'Install Helm'
@@ -266,7 +266,7 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: 'Download Helm Chart'
             inputs:
-              artifactName: 'helm-chart'
+              artifactName: 'Manifest-files'
               downloadPath: '$(System.ArtifactsDirectory)'
           - task: HelmInstaller@1
             displayName: 'Install Helm'
