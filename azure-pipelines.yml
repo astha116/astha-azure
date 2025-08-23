@@ -76,6 +76,17 @@ stages:
         npm install
         npm run test
       displayName: 'Install dependencies and run tests'
+      continueOnError: false
+      
+    - task: PublishTestResults@2
+      displayName: 'Publish Test Results'
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/test-results.xml'
+        searchFolder: '$(System.DefaultWorkingDirectory)'
+        mergeTestResults: true
+      condition: succeededOrFailed()
+      continueOnError: true
 
     # SonarQube Analysis
     - powershell: |
