@@ -1,0 +1,101 @@
+# azure-pipelines.yml
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  name: Default
+  vmImage: 'ubuntu-latest'
+variables:
+  - group: terraform-vars
+  
+stages:
+  - stage: Terraform
+    displayName: 'Terraform Deploy'
+    jobs:
+      - job: Terraform
+        displayName: 'Terraform Init, Plan & Apply'
+        steps:
+
+          # Install Terraform
+          - task: TerraformInstaller@1
+            displayName: 'Install Terraform'
+            inputs:
+              terraformVersion: '1.3.5'
+
+          # Initialize Terraform with backend
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Init'
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              backendServiceArm: 'terraform-azure-conn'
+              backendAzureRmResourceGroupName: 'astha-azure'
+              backendAzureRmStorageAccountName: 'tfstate20055'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'terraform.tfstate'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+
+          # Export TF_VARs to auto.tfvars (moved after init)
+          - task: PowerShell@2
+            displayName: "Export TF_VARs to auto.tfvars"
+            inputs:
+              targetType: 'inline'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+              script: |
+               Write-Host "Generating auto.tfvars file..."
+               $vars = Get-ChildItem Env: | Where-Object { $_.Name -like "TF_VAR_*" }
+               $output = ""
+               foreach ($var in $vars) {
+                $key = $var.Name.Substring(7) # Remove 'TF_VAR_' prefix
+                $val = $var.Value
+                Write-Host "Adding variable: $key = $val"
+                $output += "$key = `"$val`"`n"
+               }
+               $output | Out-File -FilePath "terraform.auto.tfvars" -Encoding utf8
+               Write-Host "Contents of terraform.auto.tfvars:"
+               Get-Content "terraform.auto.tfvars"
+          - task: PowerShell@2
+            displayName: 'Force Unlock Terraform State'
+            inputs:
+              targetType: 'inline'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+              script: |
+                Write-Host "Checking for locked state and attempting to unlock..."
+                $planOutput = terraform plan -var-file="terraform.auto.tfvars" -detailed-exitcode 2>&1
+                if ($planOutput -match "state blob is already locked") {
+                  Write-Host "State is locked. Attempting to extract lock ID..."
+                  if ($planOutput -match "ID:\s+([a-f0-9\-]+)") {
+                    $lockId = $matches[1]
+                    Write-Host "Found lock ID: $lockId"
+                    Write-Host "Force unlocking..."
+                    terraform force-unlock -force $lockId
+                    Write-Host "Force unlock completed."
+                  } else {
+                    Write-Host "Could not extract lock ID from error message."
+                  }
+                } else {
+                  Write-Host "State is not locked or other error occurred."
+                }
+            continueOnError: true
+
+          # Plan with explicit variable file reference
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Plan'
+            inputs:
+              provider: 'azurerm'
+              command: 'plan'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+              environmentServiceNameAzureRM: 'terraform-azure-conn'
+              commandOptions: '-var-file="terraform.auto.tfvars" -detailed-exitcode'
+
+          # Apply with explicit variable file reference
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Apply'
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+              environmentServiceNameAzureRM: 'terraform-azure-conn'
+              commandOptions: '-var-file="terraform.auto.tfvars" -auto-approve'
