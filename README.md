@@ -52,6 +52,8 @@ project-repo/
 
 Used Service connectors:
 <img width="787" height="561" alt="image" src="https://github.com/user-attachments/assets/b2445571-f7fb-4e45-9e2a-b2e1f33356cd" />
+Using self hosted Agent to build:
+<img width="1873" height="402" alt="image" src="https://github.com/user-attachments/assets/1b033747-79a7-41aa-ba1a-57a2f34a3b01" />
 
 
 ### Pipeline Features
