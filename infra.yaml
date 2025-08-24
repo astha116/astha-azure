@@ -36,10 +36,13 @@ stages:
               backendAzureRmContainerName: 'tfstate'
               backendAzureRmKey: 'terraform.tfstate'
               workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+
+          # Export TF_VARs to auto.tfvars (moved after init)
           - task: PowerShell@2
             displayName: "Export TF_VARs to auto.tfvars"
             inputs:
               targetType: 'inline'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
               script: |
                Write-Host "Generating auto.tfvars file..."
                $vars = Get-ChildItem Env: | Where-Object { $_.Name -like "TF_VAR_*" }
@@ -47,10 +50,14 @@ stages:
                foreach ($var in $vars) {
                 $key = $var.Name.Substring(7) # Remove 'TF_VAR_' prefix
                 $val = $var.Value
+                Write-Host "Adding variable: $key = $val"
                 $output += "$key = `"$val`"`n"
                }
-               $output | Out-File -FilePath "$(System.DefaultWorkingDirectory)/terraform/terraform.auto.tfvars" -Encoding utf8
-          # Plan
+               $output | Out-File -FilePath "terraform.auto.tfvars" -Encoding utf8
+               Write-Host "Contents of terraform.auto.tfvars:"
+               Get-Content "terraform.auto.tfvars"
+
+          # Plan with explicit variable file reference
           - task: TerraformTaskV4@4
             displayName: 'Terraform Plan'
             inputs:
@@ -58,9 +65,9 @@ stages:
               command: 'plan'
               workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
               environmentServiceNameAzureRM: 'terraform-azure-conn'
-              
+              commandOptions: '-var-file="terraform.auto.tfvars" -detailed-exitcode'
 
-          # Apply
+          # Apply with explicit variable file reference
           - task: TerraformTaskV4@4
             displayName: 'Terraform Apply'
             inputs:
@@ -68,4 +75,4 @@ stages:
               command: 'apply'
               workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
               environmentServiceNameAzureRM: 'terraform-azure-conn'
-              args: '-auto-approve'
+              commandOptions: '-var-file="terraform.auto.tfvars" -auto-approve'
