@@ -1,4 +1,3 @@
-# astha-azure
 # Complete DevOps Implementation - Azure & Kubernetes
 
 ## 1. Repository Setup and Version Control
