@@ -7,6 +7,12 @@ terraform {
       version = "~> 3.117"
     }
   }
+  backend "azurerm" {
+    resource_group_name  = "astha-azure"         
+    storage_account_name = "tfstate20055"        
+    container_name       = "tfstate"             
+    key                  = "terraform.tfstate"   
+  }
 }
 
 provider "azurerm" {
