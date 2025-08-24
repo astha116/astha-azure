@@ -50,6 +50,9 @@ project-repo/
 
 <img width="940" height="320" alt="image" src="https://github.com/user-attachments/assets/5e45094e-c2b8-4e05-94b6-ddc24c447227" />
 
+Used Service connectors:
+<img width="787" height="561" alt="image" src="https://github.com/user-attachments/assets/b2445571-f7fb-4e45-9e2a-b2e1f33356cd" />
+
 
 ### Pipeline Features
 
