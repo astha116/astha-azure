@@ -56,6 +56,29 @@ stages:
                $output | Out-File -FilePath "terraform.auto.tfvars" -Encoding utf8
                Write-Host "Contents of terraform.auto.tfvars:"
                Get-Content "terraform.auto.tfvars"
+          - task: PowerShell@2
+            displayName: 'Force Unlock Terraform State'
+            inputs:
+              targetType: 'inline'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+              script: |
+                Write-Host "Checking for locked state and attempting to unlock..."
+                $planOutput = terraform plan -var-file="terraform.auto.tfvars" -detailed-exitcode 2>&1
+                if ($planOutput -match "state blob is already locked") {
+                  Write-Host "State is locked. Attempting to extract lock ID..."
+                  if ($planOutput -match "ID:\s+([a-f0-9\-]+)") {
+                    $lockId = $matches[1]
+                    Write-Host "Found lock ID: $lockId"
+                    Write-Host "Force unlocking..."
+                    terraform force-unlock -force $lockId
+                    Write-Host "Force unlock completed."
+                  } else {
+                    Write-Host "Could not extract lock ID from error message."
+                  }
+                } else {
+                  Write-Host "State is not locked or other error occurred."
+                }
+            continueOnError: true
 
           # Plan with explicit variable file reference
           - task: TerraformTaskV4@4
